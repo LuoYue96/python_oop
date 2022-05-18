@@ -51,4 +51,4 @@ lm.run()
 def getInfo(cls):
     print('这是动态绑定的类方法')
 Person.getInfo=getInfo
-Person.getInfo()
+Person.getInfo()干活干活干活
