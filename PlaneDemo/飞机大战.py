@@ -75,6 +75,8 @@ if __name__ == '__main__':
 '''
 import pygame
 from pygame.locals import *
+import random
+import time
 class HeroPlane(object):
     def __init__(self,screen):
         '''
@@ -82,13 +84,15 @@ class HeroPlane(object):
         :param screen:主窗体对象
         '''
         #飞机的默认位置
-        self.x=150
-        self.y=750
+        self.x=0
+        self.y=450
         #设置要显示的内容的窗口
         self.screen=screen
         #生产飞机的图片对象
         self.imageName='./picture/hero.png'
         self.image=pygame.image.load(self.imageName)
+        #用来存放子弹的列表
+        self.bulletList=[]
         pass
     def movelift(self):
         '''左移动'''
@@ -102,13 +106,13 @@ class HeroPlane(object):
         pass
     def moverDown(self):
         ''''下移动'''
-        if self.y > 0:
-            self.y-=10
+        if self.y > 0 and self.y <800:
+            self.y+=50
         pass
     def moverUp(self):
         ''''上移动'''
-        if self.y <750:
-            self.y+=10
+        if self.y >0:
+            self.y-=10
         pass
     def display(self):
         '''
@@ -116,7 +120,116 @@ class HeroPlane(object):
         :return:
         '''
         self.screen.blit(self.image,(self.x,self.y))
+        #完善子弹的展示逻辑
+        needDelItem=[]
+        for item in self.bulletList:
+            if item.judge():
+                needDelItem.append(item)
+        #重新遍历
+        for i in needDelItem:
+            self.bulletList.remove(i)
+        for bullet in  self.bulletList:
+            bullet.display()    #显示子弹
+            bullet.move()       #改变子弹的位置
         pass
+    #发射子弹
+    def shoot(self):
+        newBullet=Bullet(self.x,self.y,self.screen)
+        self.bulletList.append(newBullet)
+'''
+2.创建子弹类
+'''
+class Bullet(object):
+    def __init__(self,x,y,screen):
+        '''
+        :param x:
+        :param y:
+        :param screen:
+        '''
+        self.x=x+20
+        self.y=y-8
+        self.screen=screen
+        self.image=pygame.image.load('./picture/bullet.png')
+    def display(self):
+        self.screen.blit(self.image,(self.x,self.y))
+        pass
+    def move(self):
+        self.y-=3
+        pass
+    #增加自检，判断子弹是否越界
+    def judge(self):
+        if self.y < 0 :
+            return True
+        else:
+            return False
+    pass
+'''
+3.创建敌机类
+'''
+class EnemyPlay(object):
+    def __init__(self,screen):
+        #设置敌机的初始移动方向
+        self.direction='right'
+        self.x=0
+        self.y=0
+        self.screen=screen
+        self.image=pygame.image.load('./picture/enemy0.png')
+        # 用来存放子弹的列表
+        self.bulletList = []
+    def display(self):
+        '''
+        在主窗口中显示飞机
+        :return:
+        '''
+        self.screen.blit(self.image, (self.x, self.y))
+        # 完善子弹的展示逻辑
+        needDelItem = []
+        for item in self.bulletList:
+            if item.judge():
+                needDelItem.append(item)
+        # 重新遍历
+        for i in needDelItem:
+            self.bulletList.remove(i)
+        for bullet in self.bulletList:
+            bullet.display()  # 显示子弹
+            bullet.move()  # 改变子弹的位置
+        pass
+    def shot(self):
+        num=random.randint(1,20)
+        if num==3:
+            enemybullet=EnemyBullet(self.x,self.y,self.screen)
+            self.bulletList.append(enemybullet)
+    def move(self):
+        if self.direction == 'right':
+            self.x+=2
+        elif self.direction == 'left':
+            self.x-=2
+        if self.x>350-20:
+            self.direction='left'
+        elif self.x <0:
+            self.direction='right'
+'''
+4.创建敌机子弹类
+'''
+class EnemyBullet(object):
+    def __init__(self,x,y,screen):
+        self.x=x
+        self.y=y+5
+        self.screen=screen
+        self.image=pygame.image.load('./picture/bullet1.png')
+    def display(self):
+        self.screen.blit(self.image, (self.x, self.y))
+    def move(self):
+        self.y += 3
+        pass
+    # 增加自检，判断子弹是否越界
+    def judge(self):
+        if self.y > 500:
+            return True
+        else:
+            return False
+
+
 def keyboard_control(Planobj):
     eventlist = pygame.event.get()
     for event in eventlist:
@@ -137,29 +250,39 @@ def keyboard_control(Planobj):
                 print('down')
                 Planobj.moverDown()
             elif event.key == K_SPACE:
+                Planobj.shoot()
                 print('射了一发子弹')
 def main():
     # 首先创建一个窗口，用来显示内容
-    screen = pygame.display.set_mode((600, 800), 1, 35)
+    screen = pygame.display.set_mode((350, 500), 1, 35)
     # 创建一个背景图片对象
-    background = pygame.image.load('./picture/1.jpg')
+    background = pygame.image.load('./picture/background.png')
     # 设置一个title
     pygame.display.set_caption('飞机大战')
     # 添加背景音乐
     pygame.mixer.init()
     pygame.mixer.music.load('./picture/background.mp3')
-    pygame.mixer.music.set_volume(0.4)
+    pygame.mixer.music.set_volume(0.2)
     pygame.mixer.music.play(-1)  # 循环次数，-1表示无限循环
     # 创建一个飞机对象
     hero=HeroPlane(screen)
+    #创建一个敌机对象
+    enemyplay=EnemyPlay(screen)
+    #设定要显示的内容
     while True:
         screen.blit(background, (0, 0))
         # 显示玩家飞机的图片
         hero.display()
+        #显示敌机
+        enemyplay.display()
+        enemyplay.move()
+        enemyplay.shot()
         # 获取键盘事件
         keyboard_control(hero)
         # 更新显示内容
         pygame.display.update()
+        #延迟
+        #pygame.time.Clock().tick(20)
         pass
 if __name__ == '__main__':
     main()
