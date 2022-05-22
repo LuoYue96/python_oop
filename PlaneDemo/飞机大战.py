@@ -77,22 +77,48 @@ import pygame
 from pygame.locals import *
 import random
 import time
-class HeroPlane(object):
+#创建一个飞机的基类，我方和敌方的飞机可以继承
+class BasePlane(object):
+    def __init__(self,screen,imagepath):
+        '''
+
+        :param screen:主窗体
+        :param imagepath: 飞机图片
+        '''
+        self.screen=screen
+        self.image=pygame.image.load(imagepath)
+        self.bulletList=[] #存放子弹列表
+        pass
+    def display(self):
+        '''
+                在主窗口中显示飞机
+                :return:
+                '''
+        self.screen.blit(self.image, (self.x, self.y))
+        # 完善子弹的展示逻辑
+        needDelItem = []
+        for item in self.bulletList:
+            if item.judge():
+                needDelItem.append(item)
+        # 重新遍历
+        for i in needDelItem:
+            self.bulletList.remove(i)
+        for bullet in self.bulletList:
+            bullet.display()  # 显示子弹
+            bullet.move()  # 改变子弹的位置
+        pass
+
+class HeroPlane(BasePlane):
     def __init__(self,screen):
         '''
         初始化函数
         :param screen:主窗体对象
         '''
         #飞机的默认位置
-        self.x=0
+        self.x=150
         self.y=450
-        #设置要显示的内容的窗口
-        self.screen=screen
-        #生产飞机的图片对象
-        self.imageName='./picture/hero.png'
-        self.image=pygame.image.load(self.imageName)
-        #用来存放子弹的列表
-        self.bulletList=[]
+        #继承父类的构造方法
+        super(HeroPlane, self).__init__(screen,'./picture/hero.png')
         pass
     def movelift(self):
         '''左移动'''
@@ -114,31 +140,56 @@ class HeroPlane(object):
         if self.y >0:
             self.y-=10
         pass
-    def display(self):
-        '''
-        在主窗口中显示飞机
-        :return:
-        '''
-        self.screen.blit(self.image,(self.x,self.y))
-        #完善子弹的展示逻辑
-        needDelItem=[]
-        for item in self.bulletList:
-            if item.judge():
-                needDelItem.append(item)
-        #重新遍历
-        for i in needDelItem:
-            self.bulletList.remove(i)
-        for bullet in  self.bulletList:
-            bullet.display()    #显示子弹
-            bullet.move()       #改变子弹的位置
-        pass
     #发射子弹
     def shoot(self):
-        newBullet=Bullet(self.x,self.y,self.screen)
+        newBullet=CommonBullet(self.x,self.y,self.screen,'hero')
         self.bulletList.append(newBullet)
 '''
 2.创建子弹类
 '''
+#创建子弹基类
+class CommonBullet():
+    '''
+    公共的子弹类
+    '''
+    def __init__(self,x,y,screen,bulletType):
+        self.type=bulletType
+        self.screen=screen
+        self.x=x
+        self.y=y
+        if self.type == 'hero':
+            self.x+=13
+            self.y-=20
+            self.imagepath='./picture/bullet.png'
+            pass
+        elif self.type == 'enemy':
+            self.x=x
+            self.y+=10
+            self.imagepath='./picture/bullet1.png'
+        self.image=pygame.image.load(self.imagepath)
+    def move(self):
+        '''
+        子弹的移动
+        :return:
+        '''
+        if self.type == 'hero':
+            self.y-=2
+        elif self.type == 'enemy':
+            self.y+=2
+    def display(self):
+        self.screen.blit(self.image,(self.x,self.y))
+        pass
+    def judge(self):
+        '''
+        判断子弹是否越界，我方子弹判断条件为y<0，敌机条件为y>500
+        :return:
+        '''
+        if self.y < 0 or self.y > 500:
+            return True
+        else:
+            return False
+    pass
+
 class Bullet(object):
     def __init__(self,x,y,screen):
         '''
@@ -166,38 +217,17 @@ class Bullet(object):
 '''
 3.创建敌机类
 '''
-class EnemyPlay(object):
+class EnemyPlay(BasePlane):
     def __init__(self,screen):
         #设置敌机的初始移动方向
         self.direction='right'
         self.x=0
         self.y=0
-        self.screen=screen
-        self.image=pygame.image.load('./picture/enemy0.png')
-        # 用来存放子弹的列表
-        self.bulletList = []
-    def display(self):
-        '''
-        在主窗口中显示飞机
-        :return:
-        '''
-        self.screen.blit(self.image, (self.x, self.y))
-        # 完善子弹的展示逻辑
-        needDelItem = []
-        for item in self.bulletList:
-            if item.judge():
-                needDelItem.append(item)
-        # 重新遍历
-        for i in needDelItem:
-            self.bulletList.remove(i)
-        for bullet in self.bulletList:
-            bullet.display()  # 显示子弹
-            bullet.move()  # 改变子弹的位置
-        pass
+        super(EnemyPlay, self).__init__(screen,'./picture/enemy0.png')
     def shot(self):
         num=random.randint(1,20)
         if num==3:
-            enemybullet=EnemyBullet(self.x,self.y,self.screen)
+            enemybullet=CommonBullet(self.x,self.y,self.screen,'enemy')
             self.bulletList.append(enemybullet)
     def move(self):
         if self.direction == 'right':
@@ -211,6 +241,7 @@ class EnemyPlay(object):
 '''
 4.创建敌机子弹类
 '''
+#直接继承BaseBullet即可，完成面向对象的编程。
 class EnemyBullet(object):
     def __init__(self,x,y,screen):
         self.x=x
